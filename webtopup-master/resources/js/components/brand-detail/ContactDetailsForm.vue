@@ -19,12 +19,12 @@ const emit = defineEmits<{
 </script>
 
 <template>
-    <section class="rounded-lg border border-border/50 bg-card p-6 shadow-sm">
+    <section class="rounded-2xl border border-[#0877e8]/10 bg-gradient-to-br from-white via-[#f8fbff] to-white p-5 shadow-md sm:p-6">
         <h2
-            class="mb-4 flex items-center gap-2 text-lg font-bold text-foreground"
+            class="mb-5 flex items-center gap-3 text-lg font-bold text-[#1d1d1f]"
         >
             <span
-                class="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#0877e8] to-[#0757b7] text-sm font-bold text-white shadow-md"
                 >3</span
             >
             Detail Kontak
@@ -37,8 +37,8 @@ const emit = defineEmits<{
                     id="name"
                     :model-value="name"
                     placeholder="Nama lengkap"
-                    class="mt-1"
-                    @update:model-value="emit('update:name', $event)"
+                    class="mt-2 border-black/10 bg-white shadow-sm focus:border-[#0877e8] focus:ring-[#0877e8]/20"
+                    @update:model-value="emit('update:name', String($event))"
                 />
                 <InputError :message="formErrors.name" class="mt-1" />
             </div>
@@ -49,8 +49,8 @@ const emit = defineEmits<{
                     :model-value="phone"
                     type="tel"
                     placeholder="08xxxxxxxxxx"
-                    class="mt-1"
-                    @update:model-value="emit('update:phone', $event)"
+                    class="mt-2 border-black/10 bg-white shadow-sm focus:border-[#0877e8] focus:ring-[#0877e8]/20"
+                    @update:model-value="emit('update:phone', String($event))"
                 />
                 <InputError :message="formErrors.phone" class="mt-1" />
                 <InputDescription class="sm:col-span-2">
@@ -64,8 +64,8 @@ const emit = defineEmits<{
                     :model-value="email"
                     type="email"
                     placeholder="email@example.com"
-                    class="mt-1"
-                    @update:model-value="emit('update:email', $event)"
+                    class="mt-2 border-black/10 bg-white shadow-sm focus:border-[#0877e8] focus:ring-[#0877e8]/20"
+                    @update:model-value="emit('update:email', String($event))"
                 />
                 <InputError :message="formErrors.email" class="mt-1" />
                 <InputDescription class="sm:col-span-2">

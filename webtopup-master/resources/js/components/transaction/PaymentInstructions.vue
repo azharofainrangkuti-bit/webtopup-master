@@ -82,7 +82,7 @@ const uploadProof = () => {
         <!-- Midtrans Bank Transfer -->
         <div
             v-if="
-                payment.driver === 'midtrans' &&
+                ['midtrans', 'sakurupiah'].includes(payment.driver) &&
                 payment.payment_type === 'bank_transfer'
             "
             class="space-y-4"
@@ -109,6 +109,16 @@ const uploadProof = () => {
                     </Button>
                 </div>
             </div>
+
+            <a
+                v-if="payment.redirect_url"
+                :href="payment.redirect_url"
+                target="_blank"
+                rel="noreferrer"
+                class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+                Buka halaman pembayaran
+            </a>
 
             <div class="rounded-lg bg-muted/50 p-4">
                 <p class="mb-2 text-sm text-muted-foreground">Total Bayar:</p>
@@ -147,17 +157,28 @@ const uploadProof = () => {
         <!-- Midtrans QRIS -->
         <div
             v-else-if="
-                payment.driver === 'midtrans' && payment.payment_type === 'qris'
+                ['midtrans', 'sakurupiah'].includes(payment.driver) && payment.payment_type === 'qris'
             "
             class="space-y-4"
         >
             <div class="flex justify-center">
                 <img
+                    v-if="payment.account_number && !payment.redirect_url"
                     :src="payment.account_number"
                     alt="QR Code"
                     class="h-64 w-64 rounded-lg border border-border"
                 />
             </div>
+
+            <a
+                v-if="payment.redirect_url"
+                :href="payment.redirect_url"
+                target="_blank"
+                rel="noreferrer"
+                class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+                Buka halaman pembayaran
+            </a>
 
             <div class="rounded-lg bg-muted/50 p-4">
                 <p class="mb-2 text-sm text-muted-foreground">Total Bayar:</p>

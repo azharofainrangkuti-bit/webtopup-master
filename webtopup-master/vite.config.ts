@@ -5,6 +5,9 @@ import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    build: {
+        chunkSizeWarningLimit: 700,
+    },
     plugins: [
         laravel({
             input: ['resources/js/app.ts'],
@@ -12,9 +15,13 @@ export default defineConfig({
             refresh: true,
         }),
         tailwindcss(),
-        wayfinder({
-            formVariants: true,
-        }),
+        ...(process.env.VITE_SKIP_WAYFINDER === 'true'
+            ? []
+            : [
+                  wayfinder({
+                      formVariants: true,
+                  }),
+              ]),
         vue({
             template: {
                 transformAssetUrls: {

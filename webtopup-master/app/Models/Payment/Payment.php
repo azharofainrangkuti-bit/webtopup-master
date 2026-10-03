@@ -21,6 +21,7 @@ class Payment extends Model implements HasMedia
         'payment_type',
         'account_number',
         'account_code',
+        'redirect_url',
         'channel',
         'expired_at',
         'paid_at',

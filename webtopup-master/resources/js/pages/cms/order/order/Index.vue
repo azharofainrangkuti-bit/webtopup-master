@@ -159,16 +159,6 @@ const handleTopupFiltersUpdate = (filters: string[]) => {
     });
 };
 
-const handleUpdateStatus = (id: number, status: number) => {
-    // This function seems incomplete in the provided instruction.
-    // 'filters' is not defined in this scope.
-    // Assuming it's a placeholder or will be completed by the user.
-    // topupFilters.value = filters;
-    // updateParams({
-    //     topup_status: filters.length > 0 ? filters : undefined,
-    //     page: 1,
-    // });
-};
 </script>
 
 <template>

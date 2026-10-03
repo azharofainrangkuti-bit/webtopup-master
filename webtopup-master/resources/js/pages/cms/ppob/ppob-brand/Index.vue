@@ -155,6 +155,7 @@ watch(filter_provider, (newValue) => {
                             <SelectItem value="digiflazz">
                                 Digiflazz
                             </SelectItem>
+                            <SelectItem value="vipayment">ViPayment</SelectItem>
                             <SelectItem value="gift"> Gift </SelectItem>
                         </SelectContent>
                     </Select>

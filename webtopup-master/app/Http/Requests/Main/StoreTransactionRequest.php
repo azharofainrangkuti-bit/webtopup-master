@@ -3,11 +3,11 @@
 namespace App\Http\Requests\Main;
 
 use App\Models\PPOB\PPOBProduct;
-use App\Services\GameProService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Triyatna\PhpValidGame\Laravel\Facades\ValidGame;
 
 class StoreTransactionRequest extends FormRequest
 {
@@ -19,7 +19,7 @@ class StoreTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => 'nullable|in:id,id+server',
+            'type' => 'nullable|in:id,id+server,login',
             'account_id' => 'required_if:type,id',
             'server_id' => 'required_if:type,id+server',
             'product_id' => 'required|exists:p_p_o_b_products,id',
@@ -33,6 +33,30 @@ class StoreTransactionRequest extends FormRequest
     }
 
     /**
+     * Enforce the input mode stored on the selected ViPayment brand.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            $product = PPOBProduct::with('brand')->find($this->input('product_id'));
+
+            if (! $product || $product->provider !== 'vipayment') {
+                return;
+            }
+
+            $expectedType = $product->brand?->settings['type'] ?? 'id';
+            if ($this->input('type') !== $expectedType) {
+                $validator->errors()->add('type', 'Input type does not match this product.');
+            }
+
+            if (in_array($expectedType, ['id+server', 'login'], true) && blank($this->input('server_id'))) {
+                $label = $expectedType === 'login' ? 'Password' : 'Server / Zone ID';
+                $validator->errors()->add('server_id', "{$label} is required for this product.");
+            }
+        });
+    }
+
+    /**
      * Handle a passed validation attempt.
      */
     protected function passedValidation(): void
@@ -40,18 +64,22 @@ class StoreTransactionRequest extends FormRequest
         $product = PPOBProduct::find($this->product_id);
 
         // Pro Version
-        $gameProService = new GameProService;
-        // Check the brand if the brand is mobile legends, check the server and uid
-        if (Str::contains(strtolower($product->brand->name), 'mobile legend')) {
-            $resolve = $gameProService->resolveAccount(
-                game: 'mobilelegend',
-                uid: $this->account_id,
-                server: $this->server_id,
+        // Validate the account only for games supported by the nickname checker.
+        $brandName = strtolower($product->brand->name);
+        $game = Str::contains($brandName, 'mobile legend')
+            ? 'mobilelegends'
+            : (Str::contains($brandName, 'free fire') ? 'freefire' : null);
+
+        if ($game === 'mobilelegends') {
+            $resolve = ValidGame::check(
+                game: $game,
+                userId: $this->account_id,
+                zoneId: $this->server_id,
             );
 
-            if (! $resolve['status']) {
+            if (! $resolve->isValid()) {
                 throw ValidationException::withMessages([
-                    'account_id' => 'Game id or server is invalid',
+                    'account_id' => $resolve->getMessage() ?: 'Game ID atau server tidak valid',
                 ]);
             }
         }

@@ -135,6 +135,11 @@ class TransactionController extends Controller
         return inertia('main/TransactionShow', [
             'order' => $order,
             'mlAccountNickname' => $mlAccount->username ?? null,
+        ])->withViewData([
+            'meta' => [
+                'title' => 'Detail Transaksi - '.getSetting('title'),
+                'robots' => 'noindex, nofollow',
+            ],
         ]);
     }
 

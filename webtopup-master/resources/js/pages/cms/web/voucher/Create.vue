@@ -99,7 +99,7 @@ const type = ref<string>('FIXED_AMOUNT');
                     <input type="hidden" name="type" :value="type" />
                     <Select
                         :default-value="type"
-                        @update:model-value="(val) => (type = val)"
+                        @update:model-value="(val) => (type = String(val ?? ''))"
                     >
                         <SelectTrigger id="type" class="w-full">
                             <SelectValue placeholder="Select a type" />

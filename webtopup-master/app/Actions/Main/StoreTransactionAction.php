@@ -9,10 +9,12 @@ use App\Models\PPOB\PPOBProduct;
 use App\Models\Voucher\Voucher;
 use App\Models\Voucher\VoucherUse;
 use App\Services\MidtransService;
+use App\Services\SakurupiahService;
 use App\Services\VodaService;
 use App\Traits\WithGenerateReference;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class StoreTransactionAction
 {
@@ -20,6 +22,7 @@ class StoreTransactionAction
 
     public function __construct(
         public readonly MidtransService $midtransService,
+        public readonly SakurupiahService $sakurupiahService,
         public readonly VodaService $vodaService,
     ) {}
 
@@ -127,8 +130,9 @@ class StoreTransactionAction
 
         // Create payment record
         $orderId = uniqid().time();
+        $gateway = config('services.payment_gateway', 'midtrans');
         $payment = Payment::create([
-            'driver' => $data['payment_type'] === 'automatic' ? 'midtrans' : 'manual',
+            'driver' => $data['payment_type'] === 'automatic' ? $gateway : 'manual',
             'payable_type' => Order::class,
             'payable_id' => $order->id,
             'order_id' => $orderId,
@@ -143,7 +147,31 @@ class StoreTransactionAction
 
         // Create Midtrans transaction if payment type is automatic
         if ($data['payment_type'] === 'automatic') {
-            if ($data['payment_method'] === 'qris') {
+            if ($gateway === 'sakurupiah') {
+                $sakurupiah = $this->sakurupiahService->createInvoice(
+                    method: $this->sakurupiahMethod($data['payment_method']),
+                    merchantReference: $payment->order_id,
+                    amount: $payment->amount,
+                    name: $order->name,
+                    email: $order->email,
+                    phone: $order->phone,
+                    callbackUrl: $this->sakurupiahCallbackUrl(),
+                    returnUrl: $this->transactionUrl($order),
+                    productName: $this->productName($product),
+                    productPrice: (string) $amountAfterDiscount,
+                );
+
+                if (! $sakurupiah['successful']) {
+                    throw new \Exception('Failed to create Sakurupiah transaction: '.$sakurupiah['message']);
+                }
+
+                $payment->transaction_id = $sakurupiah['transaction_id'];
+                $payment->account_number = $sakurupiah['account'] ?: $sakurupiah['redirect_url'];
+                $payment->account_code = $sakurupiah['code'];
+                $payment->redirect_url = $sakurupiah['redirect_url'];
+                $payment->expired_at = $sakurupiah['expired_at'] ?: $payment->expired_at;
+                $payment->save();
+            } elseif ($data['payment_method'] === 'qris') {
                 $midtrans = $this->midtransService->createQris(
                     orderId: $payment->order_id,
                     amount: $payment->amount,
@@ -156,16 +184,16 @@ class StoreTransactionAction
                 );
             }
 
-            // Throw an exception if Midtrans transaction creation failed
-            if (! $midtrans['successful']) {
-                throw new \Exception('Failed to create Midtrans transaction: '.$midtrans['message']);
-            }
+            if ($gateway === 'midtrans') {
+                if (! $midtrans['successful']) {
+                    throw new \Exception('Failed to create Midtrans transaction: '.$midtrans['message']);
+                }
 
-            // Update payment with Midtrans details
-            $payment->transaction_id = $midtrans['transaction_id'];
-            $payment->account_number = $midtrans['account'];
-            $payment->account_code = $midtrans['code'] ?? null;
-            $payment->save();
+                $payment->transaction_id = $midtrans['transaction_id'];
+                $payment->account_number = $midtrans['account'];
+                $payment->account_code = $midtrans['code'] ?? null;
+                $payment->save();
+            }
         } else {
             // For manual payment, we can set the account number to the payment method for easier reconciliation
             $payment->channel = getSetting('manual_transfer_bank');
@@ -180,9 +208,7 @@ class StoreTransactionAction
         $message = str_replace('{order_id}', $order->reference, $message);
         $message = str_replace('{product}', $product->name, $message);
         $message = str_replace('{total}', numberToCurrency($order->total_amount), $message);
-        $message = str_replace('{link}', route('transaction.show', [
-            'order' => $order,
-        ]), $message);
+        $message = str_replace('{link}', $this->transactionUrl($order), $message);
         $message = str_replace('{cs_link}', getSetting('cs'), $message);
 
         // // Send message via Voda
@@ -219,5 +245,48 @@ class StoreTransactionAction
         ]);
 
         return $order;
+    }
+
+    private function sakurupiahMethod(string $paymentMethod): string
+    {
+        $method = strtolower(trim($paymentMethod));
+
+        return match ($method) {
+            'qris' => 'QRIS',
+            'bca' => 'BCAVA',
+            'bni' => 'BNIVA',
+            'bri' => 'BRIVA',
+            'mandiri' => 'MANDIRIVA',
+            'permata' => 'PERMATAVA',
+            'shopeepay' => 'ShopeePay',
+            'gopay' => 'GOPAY',
+            default => $paymentMethod,
+        };
+    }
+
+    public function sakurupiahCallbackUrl(): string
+    {
+        return $this->absoluteUrl('api/v1/sakurupiah/callback');
+    }
+
+    private function transactionUrl(Order $order): string
+    {
+        return $this->absoluteUrl('transaction/'.$order->reference);
+    }
+
+    private function absoluteUrl(string $path): string
+    {
+        $request = request();
+        $scheme = $request?->header('X-Forwarded-Proto') ?? $request?->getScheme() ?? config('app.url', 'http://localhost');
+        $host = $request?->header('X-Forwarded-Host') ?? $request?->getHttpHost() ?? parse_url(config('app.url', 'http://localhost'), PHP_URL_HOST) ?? 'localhost';
+
+        $base = rtrim($scheme.'://'.$host, '/');
+
+        return $base.'/'.ltrim($path, '/');
+    }
+
+    private function productName(PPOBProduct $product): string
+    {
+        return Str::of($product->name)->limit(50, '...')->toString();
     }
 }

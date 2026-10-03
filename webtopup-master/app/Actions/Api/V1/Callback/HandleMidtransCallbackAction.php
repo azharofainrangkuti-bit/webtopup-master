@@ -8,6 +8,7 @@ use App\Mail\PaymentSuccess;
 use App\Models\Order\Order;
 use App\Models\Payment\Payment;
 use App\Services\MidtransService;
+use App\Services\VipaymentService;
 use App\Services\VodaService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -17,6 +18,7 @@ class HandleMidtransCallbackAction
 {
     public function __construct(
         public readonly MidtransService $midtransService,
+        public readonly VipaymentService $vipaymentService,
         public readonly VodaService $vodaService,
     ) {}
 
@@ -132,10 +134,21 @@ class HandleMidtransCallbackAction
             // If the provider is Digiflazz, create transaction to Digiflazz
             if ($order->brand->provider === 'digiflazz') {
                 Digiflazz::createPrepaidTransaction(
-                     productCode: $order->product->sku,
-                     customerNo: $customer,
-                     refId: $order->reference,
+                    productCode: $order->product->sku,
+                    customerNo: $customer,
+                    refId: $order->reference,
                 );
+            } elseif ($order->brand->provider === 'vipayment') {
+                $transaction = $this->vipaymentService->createTransaction(
+                    productCode: $order->product->sku,
+                    destination: (string) ($order->submited['account_id'] ?? ''),
+                    serverId: $order->submited['server_id'] ?? null,
+                    endpoint: $order->product->vipayment_endpoint ?? 'api/game-feature',
+                );
+
+                if ($transaction['transaction_id']) {
+                    $order->payment->update(['transaction_id' => $transaction['transaction_id']]);
+                }
             }
 
             // Send notification to user

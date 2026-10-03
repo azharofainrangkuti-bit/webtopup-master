@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { check } from '@/actions/App/Http/Controllers/Main/TransactionController';
+import FloatingCsWidget from '@/components/FloatingCsWidget.vue';
 import MainFooter from '@/components/MainFooter.vue';
 import MainHeader from '@/components/MainHeader.vue';
 import StatusBadge from '@/components/transaction/StatusBadge.vue';
@@ -55,7 +56,7 @@ const handleSearch = () => {
         </component>
     </Head>
 
-    <div class="flex min-h-screen flex-col bg-background">
+    <div class="public-shell flex min-h-screen flex-col bg-background">
         <!-- Header -->
         <MainHeader />
 
@@ -212,6 +213,8 @@ const handleSearch = () => {
                 </div>
             </div>
         </main>
+
+        <FloatingCsWidget />
 
         <!-- Footer -->
         <MainFooter />

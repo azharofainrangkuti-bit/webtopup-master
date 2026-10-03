@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'meta_pixel_id' => env('META_PIXEL_ID'),
+    'meta_domain_verification' => env('META_DOMAIN_VERIFICATION'),
+
+
+    'payment_gateway' => env('PAYMENT_GATEWAY', 'midtrans'),
 
     /*
     |--------------------------------------------------------------------------

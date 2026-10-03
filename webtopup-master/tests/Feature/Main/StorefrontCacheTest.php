@@ -85,6 +85,105 @@ it('keeps brands as an infinite scroll prop', function () {
     ]);
 });
 
+it('shows more brands on the first page when the catalog is larger than one screen', function () {
+    for ($i = 2; $i <= 16; $i++) {
+        PPOBBrand::create([
+            'p_p_o_b_category_id' => $this->category->id,
+            'name' => "Brand {$i}",
+            'provider' => 'vipayment',
+            'description' => 'Imported from ViPayment',
+            'featured' => false,
+            'order' => $i,
+            'status' => true,
+        ]);
+    }
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('main/Home')
+            ->has('brands.data', 16)
+        );
+});
+
+it('prioritizes featured brands before generic ones on the home page', function () {
+    PPOBBrand::create([
+        'p_p_o_b_category_id' => $this->category->id,
+        'name' => 'Free Fire',
+        'provider' => 'vipayment',
+        'description' => 'FF diamonds',
+        'featured' => false,
+        'order' => 1,
+        'status' => true,
+    ]);
+
+    PPOBBrand::create([
+        'p_p_o_b_category_id' => $this->category->id,
+        'name' => 'PUBG Mobile',
+        'provider' => 'vipayment',
+        'description' => 'PUBG UC',
+        'featured' => true,
+        'order' => 99,
+        'status' => true,
+    ]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('main/Home')
+            ->where('brands.data.0.name', 'Mobile Legends')
+        );
+});
+
+it('filters brands on the home page by a search term', function () {
+    $this->brand->update(['name' => 'Mobile Legends']);
+
+    PPOBBrand::create([
+        'p_p_o_b_category_id' => $this->category->id,
+        'name' => 'Free Fire',
+        'provider' => 'digiflazz',
+        'description' => 'FF diamonds',
+        'featured' => false,
+        'order' => 2,
+        'status' => true,
+    ]);
+
+    $this->get(route('home', ['search' => 'mobile']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('main/Home')
+            ->has('brands.data', 1)
+            ->where('brands.data.0.name', 'Mobile Legends')
+        );
+});
+
+it('shows only active ViPayment categories in the favorite games section', function () {
+    $vipaymentCategory = PPOBCategory::create([
+        'name' => 'Game',
+        'description' => 'Imported from ViPayment',
+        'status' => true,
+    ]);
+
+    PPOBBrand::create([
+        'p_p_o_b_category_id' => $vipaymentCategory->id,
+        'name' => 'Free Fire',
+        'provider' => 'vipayment',
+        'description' => 'Imported from ViPayment',
+        'featured' => false,
+        'order' => 2,
+        'status' => true,
+    ]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('main/Home')
+            ->has('categories', 1)
+            ->where('categories.0.name', 'Game')
+            ->where('categories.0.active_brands_count', 1)
+        );
+});
+
 it('caches only the first few pages of the brand list', function () {
     $this->get(route('home', ['page' => 1]))->assertOk();
     $this->get(route('home', ['page' => 99999]))->assertOk();

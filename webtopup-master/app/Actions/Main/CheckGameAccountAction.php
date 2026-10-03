@@ -4,15 +4,11 @@ namespace App\Actions\Main;
 
 use App\Models\PPOB\PPOBBrand;
 use App\Models\PPOB\PPOBProduct;
-use App\Services\GameProService;
 use Illuminate\Support\Str;
+use Triyatna\PhpValidGame\Laravel\Facades\ValidGame;
 
 class CheckGameAccountAction
 {
-    public function __construct(
-        protected GameProService $gameProService,
-    ) {}
-
     /**
      * Handle the action.
      */
@@ -28,18 +24,47 @@ class CheckGameAccountAction
             $brandName = $brand->name;
         }
 
-        // Currently only Mobile Legends is supported for check
-        if (! Str::contains(strtolower($brandName), 'mobile legend')) {
+        $game = $this->supportedGame($brandName);
+
+        if ($game === null) {
             return [
                 'status' => false,
                 'message' => 'Game validation not supported for this product',
             ];
         }
 
-        return $this->gameProService->resolveAccount(
-            game: 'mobilelegend',
-            uid: $data['account_id'],
-            server: $data['server_id'] ?? null,
+        $result = ValidGame::check(
+            game: $game,
+            userId: $data['account_id'],
+            zoneId: $data['server_id'] ?? null,
         );
+
+        $isValid = $result->isValid();
+
+        return [
+            // ViPayment accepts Free Fire data_no directly; nickname providers
+            // can reject valid accounts by region.
+            'status' => $isValid || $game === 'freefire',
+            'message' => $isValid
+                ? $result->getMessage()
+                : ($game === 'freefire' ? 'ID diterima, nickname belum dapat diverifikasi.' : $result->getMessage()),
+            'verification_pending' => ! $isValid && $game === 'freefire',
+            'data' => [
+                'username' => $result->nickname,
+                'nickname' => $result->nickname,
+                'game' => $result->game,
+            ],
+        ];
+    }
+
+    private function supportedGame(string $brandName): ?string
+    {
+        $name = Str::lower($brandName);
+
+        return match (true) {
+            Str::contains($name, 'mobile legend') => 'mobilelegends',
+            Str::contains($name, 'free fire') => 'freefire',
+            default => null,
+        };
     }
 }

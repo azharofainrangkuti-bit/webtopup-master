@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+Disallow: /cms
+Disallow: /checkout
+Disallow: /transaction/
+Disallow: /invoices/
+Disallow: /id-id/invoices/
+Disallow: /profile
+Disallow: /password
+Disallow: /settings
+Disallow: /after-login
+Allow: /transaction$
+
+Sitemap: /sitemap.xml

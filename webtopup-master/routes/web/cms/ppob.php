@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Cms\PPOB\ImportDigiflazzController;
+use App\Http\Controllers\Cms\PPOB\ImportVipaymentController;
 use App\Http\Controllers\Cms\PPOB\PPOBBrandController;
 use App\Http\Controllers\Cms\PPOB\PPOBCategoryController;
 use App\Http\Controllers\Cms\PPOB\PPOBProductController;
@@ -20,4 +21,6 @@ Route::group([
     Route::post('brands/json-all', [PPOBBrandController::class, 'jsonAll'])->name('brands.json-all');
     Route::get('import-digiflazz', [ImportDigiflazzController::class, 'index'])->name('import-digiflazz.index');
     Route::post('import-digiflazz', [ImportDigiflazzController::class, 'sync'])->name('import-digiflazz.sync');
+    Route::get('import-vipayment', [ImportVipaymentController::class, 'index'])->name('import-vipayment.index');
+    Route::post('import-vipayment', [ImportVipaymentController::class, 'sync'])->name('import-vipayment.sync');
 });

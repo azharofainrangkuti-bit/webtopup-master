@@ -4,9 +4,11 @@ import { store } from '@/actions/App/Http/Controllers/Main/TransactionController
 import AccountDataForm from '@/components/brand-detail/AccountDataForm.vue';
 import BrandBanner from '@/components/brand-detail/BrandBanner.vue';
 import ContactDetailsForm from '@/components/brand-detail/ContactDetailsForm.vue';
+import OrderConfirmationModal from '@/components/brand-detail/OrderConfirmationModal.vue';
 import OrderSummary from '@/components/brand-detail/OrderSummary.vue';
 import PaymentMethodSelection from '@/components/brand-detail/PaymentMethodSelection.vue';
 import ProductSelection from '@/components/brand-detail/ProductSelection.vue';
+import FloatingCsWidget from '@/components/FloatingCsWidget.vue';
 import MainFooter from '@/components/MainFooter.vue';
 import MainHeader from '@/components/MainHeader.vue';
 import Maintenance from '@/pages/main/Maintenance.vue';
@@ -21,12 +23,22 @@ import { FaqDataItem } from '@/types/cms/web';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import axios from 'axios';
-import { ChevronDown } from 'lucide-vue-next';
+import { ArrowRight, ChevronDown } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
     brand: PPOBBrandDataItem;
     faqs: FaqDataItem[];
+    payment_methods?: Array<{
+        id: string;
+        name: string;
+        fee: number;
+        action: 'add' | 'multiply';
+        img: string;
+        minimum?: number;
+        maximum?: number;
+        type?: string;
+    }>;
 }>();
 const page = usePage();
 const user = page.props.auth.user;
@@ -49,14 +61,16 @@ const form = useForm({
 
 const resolvedUsername = ref<string | null>(null);
 const checkError = ref<string | null>(null);
+const verificationPending = ref(false);
 const isLoadingCheck = ref(false);
 const discountAmount = ref(0);
 
 const abortController = ref<AbortController | null>(null);
 
 const checkGameAccount = useDebounceFn(async () => {
-    // Check if brand is mobile legends
-    if (!props.brand.name.toLowerCase().includes('mobile legend')) {
+    const brandName = props.brand.name.toLowerCase();
+
+    if (!brandName.includes('mobile legend') && !brandName.includes('free fire')) {
         return;
     }
 
@@ -72,6 +86,7 @@ const checkGameAccount = useDebounceFn(async () => {
     isLoadingCheck.value = true;
     resolvedUsername.value = null;
     checkError.value = null;
+    verificationPending.value = false;
 
     try {
         const response = await axios.post(
@@ -90,6 +105,10 @@ const checkGameAccount = useDebounceFn(async () => {
             resolvedUsername.value =
                 response.data.data?.username ||
                 response.data.data?.data?.username;
+            verificationPending.value = response.data.data?.verification_pending === true;
+            if (verificationPending.value) {
+                checkError.value = response.data.data?.message || null;
+            }
         } else {
             checkError.value =
                 response.data.message || 'Game ID tidak ditemukan';
@@ -135,6 +154,17 @@ const selectedProductData = computed(() => {
     return props.brand.products.find((p) => p.id === form.product_id);
 });
 
+const currentCheckoutStep = computed(() => {
+    if (!form.account_id || (inputType.value === 'id+server' && !form.server_id)) {
+        return 1;
+    }
+
+    if (!form.product_id) return 2;
+    if (!form.name || !form.phone) return 3;
+
+    return 4;
+});
+
 // Manual payment - Bank accounts
 const manualBank = {
     id: setting?.manual_transfer_bank,
@@ -145,50 +175,45 @@ const manualBank = {
 };
 
 // Automatic payment methods
-const paymentMethods = [
-    {
-        id: 'qris',
-        name: 'QRIS',
-        fee: 0.007, // 0.7%
-        action: 'multiply' as const,
-        img: '/images/QRIS.svg',
+const paymentMethods = computed(() => props.payment_methods ?? []);
+
+watch(
+    () => form.payment_type,
+    (paymentType) => {
+        if (paymentType === 'automatic' && !form.payment_method) {
+            form.payment_method = paymentMethods.value[0]?.id ?? null;
+        }
+
+        if (paymentType === 'manual' && !manualBank.id) {
+            form.payment_method = null;
+        }
     },
-    {
-        id: 'bca',
-        name: 'Virtual Account BCA',
-        fee: 4000, // Flat 4000 IDR
-        action: 'add' as const,
-        img: '/images/BCA.svg',
+    { immediate: true },
+);
+
+watch(
+    () => form.payment_method,
+    (selectedMethod) => {
+        if (!selectedMethod) {
+            if (form.payment_type === 'automatic') {
+                form.payment_method = paymentMethods.value[0]?.id ?? null;
+            }
+
+            return;
+        }
+
+        const isValidAutomaticMethod = paymentMethods.value.some((method) => method.id === selectedMethod);
+        const isValidManualMethod = manualBank.id && selectedMethod === manualBank.id;
+
+        if (form.payment_type === 'automatic' && !isValidAutomaticMethod) {
+            form.payment_method = paymentMethods.value[0]?.id ?? null;
+        }
+
+        if (form.payment_type === 'manual' && !isValidManualMethod) {
+            form.payment_method = manualBank.id ?? null;
+        }
     },
-    {
-        id: 'mandiri',
-        name: 'Virtual Account Mandiri',
-        fee: 4000, // Flat 4000 IDR
-        action: 'add' as const,
-        img: '/images/MANDIRI.svg',
-    },
-    {
-        id: 'bni',
-        name: 'Virtual Account BNI',
-        fee: 4000, // Flat 4000 IDR
-        action: 'add' as const,
-        img: '/images/BNI.svg',
-    },
-    {
-        id: 'bri',
-        name: 'Virtual Account BRI',
-        fee: 4000, // Flat 4000 IDR
-        action: 'add' as const,
-        img: '/images/BRI.svg',
-    },
-    {
-        id: 'permata',
-        name: 'Virtual Account Permata',
-        fee: 4000, // Flat 4000 IDR
-        action: 'add' as const,
-        img: '/images/PERMATA.svg',
-    },
-];
+);
 
 // Calculate total with fee
 const totalAmount = computed(() => {
@@ -205,7 +230,7 @@ const totalAmount = computed(() => {
     // Automatic payment - calculate fee
     if (!form.payment_method) return priceAfterDiscount;
 
-    const method = paymentMethods.find((m) => m.id === form.payment_method);
+    const method = paymentMethods.value.find((m) => m.id === form.payment_method);
     if (!method) return priceAfterDiscount;
 
     if (method.action === 'multiply') {
@@ -219,6 +244,15 @@ const totalAmount = computed(() => {
 });
 
 const { toast } = useSwal();
+const showConfirmationModal = ref(false);
+
+const selectedPaymentMethodName = computed(() => {
+    if (form.payment_type === 'manual') {
+        return manualBank.name || 'Transfer Bank Manual';
+    }
+    const found = paymentMethods.value.find((m) => m.id === form.payment_method);
+    return found ? found.name : form.payment_method || '-';
+});
 
 const handleVoucherApplied = (code: string, discount: number) => {
     form.voucher_code = code;
@@ -272,6 +306,11 @@ const handleCheckout = () => {
         return;
     }
 
+    showConfirmationModal.value = true;
+};
+
+const executeCheckout = () => {
+    showConfirmationModal.value = false;
     form.post(store().url, {
         preserveScroll: true,
         onSuccess: () => {
@@ -333,7 +372,7 @@ const handleCheckout = () => {
         </component>
     </Head>
 
-    <div class="flex min-h-screen flex-col bg-background">
+    <div class="public-shell flex min-h-screen flex-col bg-background">
         <!-- Header -->
         <MainHeader :show-back-button="true" />
 
@@ -341,9 +380,19 @@ const handleCheckout = () => {
             <Maintenance />
         </template>
         <!-- Main Content -->
-        <main class="flex-1 w-full" v-else>
+        <main class="flex-1 w-full bg-[linear-gradient(180deg,#fbfbfd_0%,#f5f7fa_100%)]" v-else>
             <!-- Banner Section -->
             <BrandBanner :brand="brand" />
+
+            <div class="mx-auto max-w-7xl px-4 pt-6">
+                <div class="flex items-center justify-between gap-2 overflow-x-auto rounded-2xl border border-[#0877e8]/10 bg-white/90 px-4 py-3 shadow-md backdrop-blur">
+                    <div v-for="(step, index) in ['Data akun', 'Pilih nominal', 'Data kontak', 'Pembayaran']" :key="step" class="flex shrink-0 items-center gap-2">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition" :class="index + 1 <= currentCheckoutStep ? 'bg-gradient-to-br from-[#0877e8] to-[#0757b7] text-white shadow-sm' : 'bg-[#eef6ff] text-[#7b8794]'">{{ index + 1 }}</span>
+                        <span class="text-xs font-semibold transition" :class="index + 1 === currentCheckoutStep ? 'text-[#0757b7]' : index + 1 < currentCheckoutStep ? 'text-[#424245]' : 'text-[#7b8794]'">{{ step }}</span>
+                        <ArrowRight v-if="index < 3" class="mx-1 h-3.5 w-3.5 text-[#a1a1aa]" />
+                    </div>
+                </div>
+            </div>
 
             <!-- Form Content -->
             <div class="mx-auto max-w-7xl px-4 py-8">
@@ -361,7 +410,9 @@ const handleCheckout = () => {
                             :form-errors="form.errors"
                             :resolved-username="resolvedUsername"
                             :check-error="checkError"
+                            :verification-pending="verificationPending"
                             :is-loading-check="isLoadingCheck"
+                            :instructions="brand.settings?.instructions"
                         />
 
                         <!-- Step 2: Select Product -->
@@ -384,6 +435,7 @@ const handleCheckout = () => {
                             v-model:selected-payment="form.payment_method"
                             :manual-bank="manualBank"
                             :payment-methods="paymentMethods"
+                            :product-price="selectedProductData?.sell_price"
                         />
 
                         <!-- Brand Description -->
@@ -450,6 +502,26 @@ const handleCheckout = () => {
                 </div>
             </div>
         </main>
+
+        <!-- Order Confirmation Modal -->
+        <OrderConfirmationModal
+            v-model:is-open="showConfirmationModal"
+            :brand-name="brand.name"
+            :account-id="form.account_id"
+            :server-id="form.server_id"
+            :label-id="labelId"
+            :label-server="labelServer"
+            :resolved-username="resolvedUsername"
+            :product="selectedProductData as PPOBProductDataItem"
+            :payment-method-name="selectedPaymentMethodName"
+            :contact-name="form.name"
+            :contact-phone="form.phone"
+            :total-amount="totalAmount"
+            :is-loading="form.processing"
+            @confirm="executeCheckout"
+        />
+
+        <FloatingCsWidget />
 
         <!-- Footer -->
         <MainFooter />

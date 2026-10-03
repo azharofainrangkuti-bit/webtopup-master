@@ -9,6 +9,7 @@ export interface PPOBCategoryDataItem {
     updated_at: string;
     brands_count?: number;
     active_brands_count?: number;
+    active_brands?: PPOBBrandDataItem[];
 }
 
 export interface PPOBBrandDataItem {
@@ -21,10 +22,11 @@ export interface PPOBBrandDataItem {
     featured: boolean;
     order: number;
     settings?: {
-        type?: 'id' | 'id+server';
+        type?: 'id' | 'id+server' | 'login';
         label_id?: string;
         label_server?: string;
         servers?: string[];
+        instructions?: string;
     };
     image?: string;
     banner?: string;
@@ -95,3 +97,23 @@ export interface DigiflazzCategoryGroup {
     name: string;
     brands: DigiflazzBrandGroup[];
 }
+
+export interface VipaymentProductDataItem {
+    category: string;
+    brand: string;
+    sku: string;
+    name: string;
+    price: number;
+    status: boolean;
+}
+
+export interface VipaymentBrandGroup {
+    name: string;
+    products: VipaymentProductDataItem[];
+}
+
+export interface VipaymentCategoryGroup {
+    name: string;
+    brands: VipaymentBrandGroup[];
+}
+

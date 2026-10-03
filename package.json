@@ -1,0 +1,8 @@
+{
+    "private": true,
+    "scripts": {
+        "dev": "npm --prefix webtopup-master run dev",
+        "build": "XDEBUG_MODE=off docker compose -f webtopup-master/docker-compose.yml exec -T app npm run build",
+        "test": "XDEBUG_MODE=off docker compose -f webtopup-master/docker-compose.yml exec -T app php artisan test --compact"
+    }
+}

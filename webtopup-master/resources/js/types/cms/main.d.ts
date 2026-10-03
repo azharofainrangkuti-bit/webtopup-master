@@ -11,6 +11,7 @@ export interface PaymentDataItem {
     payment_type: string;
     account_number: string;
     account_code: string;
+    redirect_url: string | null;
     channel: string;
     expired_at: string;
     paid_at: string;

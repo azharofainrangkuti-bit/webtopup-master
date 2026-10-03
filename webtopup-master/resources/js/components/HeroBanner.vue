@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SliderDataItem } from '@/types/cms/web';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
 
 interface Props {
@@ -52,7 +53,7 @@ onUnmounted(() => {
 
 <template>
     <div
-        class="relative overflow-hidden rounded-xl bg-gray-100"
+        class="relative overflow-hidden rounded-xl bg-[#061b36]"
         @mouseenter="stopAutoplay"
         @mouseleave="startAutoplay"
     >
@@ -77,42 +78,24 @@ onUnmounted(() => {
         <!-- Navigation Arrows -->
         <button
             v-if="slides.length > 1"
-            class="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow-md transition-all hover:bg-white"
+            type="button"
+            aria-label="Banner sebelumnya"
+            title="Banner sebelumnya"
+            class="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/25 text-white shadow-md backdrop-blur transition-all hover:bg-white hover:text-[#061b36] sm:left-4"
             @click="prevSlide"
         >
-            <svg
-                class="h-6 w-6 text-gray-800"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 19l-7-7 7-7"
-                />
-            </svg>
+            <ChevronLeft class="h-4 w-4" />
         </button>
 
         <button
             v-if="slides.length > 1"
-            class="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow-md transition-all hover:bg-white"
+            type="button"
+            aria-label="Banner berikutnya"
+            title="Banner berikutnya"
+            class="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/25 text-white shadow-md backdrop-blur transition-all hover:bg-white hover:text-[#061b36] sm:right-4"
             @click="nextSlide"
         >
-            <svg
-                class="h-6 w-6 text-gray-800"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                />
-            </svg>
+            <ChevronRight class="h-4 w-4" />
         </button>
 
         <!-- Indicators -->
@@ -123,7 +106,10 @@ onUnmounted(() => {
             <button
                 v-for="(slide, index) in slides"
                 :key="`indicator-${slide.id}`"
-                class="h-2 rounded-full transition-all"
+                type="button"
+                :aria-label="`Buka banner ${index + 1}`"
+                :aria-current="index === currentSlide ? 'true' : undefined"
+                class="h-1.5 rounded-full transition-all"
                 :class="
                     index === currentSlide
                         ? 'w-8 bg-white'

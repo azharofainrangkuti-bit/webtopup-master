@@ -6,9 +6,11 @@ use App\Enums\CacheGroupEnum;
 use App\Http\Controllers\Controller;
 use App\Models\PPOB\PPOBBrand;
 use App\Models\PPOB\PPOBCategory;
+use App\Models\Web\Faq;
 use App\Models\Web\Slider;
 use App\Traits\WithVersionedCache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
@@ -27,6 +29,7 @@ class HomeController extends Controller
     {
         $settingTitle = getSetting('title');
         $settingFavicon = getSetting('favicon') ?: '/favicon.svg';
+        $search = trim((string) $request->query('search', ''));
 
         $sliders = $this->flexibleVersioned(CacheGroupEnum::SLIDERS, 'home', [3600, 7200], function () {
             return Slider::query()
@@ -42,10 +45,20 @@ class HomeController extends Controller
                 });
         });
 
-        $categories = $this->flexibleVersioned(CacheGroupEnum::CATEGORIES, 'home', [1800, 3600], function () {
+        $categories = $this->flexibleVersioned(CacheGroupEnum::CATEGORIES, 'home:v5', [1800, 3600], function () {
             return PPOBCategory::query()
-                ->withCount('activeBrands', 'media')
+                ->withCount([
+                    'activeBrands',
+                    'media',
+                ])
                 ->where('status', true)
+                ->whereIn('name', PPOBCategory::STOREFRONT_CATEGORIES)
+                ->whereHas('activeBrands', function ($brandQuery) {
+                    $brandQuery->whereHas('products', function ($productQuery) {
+                        $productQuery->where('status', true);
+                    });
+                })
+                ->orderByRaw(PPOBCategory::storefrontOrderSql())
                 ->get()
                 ->map(function ($category) {
                     $category->image = $category->getFirstMediaUrl('image');
@@ -55,9 +68,18 @@ class HomeController extends Controller
                 });
         });
 
+        $totalBrands = $this->flexibleVersioned(CacheGroupEnum::BRANDS, 'home:total_count', [1800, 3600], function () {
+            return PPOBBrand::query()
+                ->where('status', true)
+                ->whereHas('products', function ($productQuery) {
+                    $productQuery->where('status', true);
+                })
+                ->count();
+        });
+
         $featuredBrands = $this->flexibleVersioned(CacheGroupEnum::BRANDS, 'home:featured', [1800, 3600], function () {
             return PPOBBrand::query()
-                ->with('category', 'media')
+                ->with('category', 'media', 'products')
                 ->where('featured', true)
                 ->where('status', true)
                 ->orderBy('order')
@@ -71,6 +93,11 @@ class HomeController extends Controller
                 });
         });
 
+        $faqs = Faq::query()
+            ->where('status', true)
+            ->orderBy('order')
+            ->get(['id', 'question', 'answer']);
+
         // Filter category
         $category = null;
         if ($request->has('category')) {
@@ -79,9 +106,11 @@ class HomeController extends Controller
 
         return inertia()->render('main/Home', [
             'sliders' => $sliders,
-            'brands' => inertia()->scroll(fn () => $this->paginateBrands($request, $category)),
+            'brands' => inertia()->scroll(fn () => $this->paginateBrands($request, $category, $search)),
             'featured_brands' => $featuredBrands,
             'categories' => $categories,
+            'total_brands' => $totalBrands,
+            'faqs' => $faqs,
         ])->withViewData([
             'meta' => [
                 'title' => $settingTitle,
@@ -98,32 +127,50 @@ class HomeController extends Controller
     /**
      * Paginated brands for the infinite scroll section, cached per category and page.
      */
-    private function paginateBrands(Request $request, ?PPOBCategory $category)
+    private function paginateBrands(Request $request, ?PPOBCategory $category, string $search = '')
     {
         $page = max(1, (int) $request->query('page', 1));
+        $searchKey = $search !== '' ? md5($search) : 'all';
 
         if ($page > self::MAX_CACHED_PAGE) {
-            return $this->brandsQuery($category);
+            return $this->brandsQuery($category, $search);
         }
 
         $categoryKey = $category?->slug ?: 'all';
 
-        return $this->flexibleVersioned(
+        $cacheKey = "home:list:{$categoryKey}:search:{$searchKey}:page:{$page}";
+
+        $brands = $this->flexibleVersioned(
             CacheGroupEnum::BRANDS,
-            "home:list:{$categoryKey}:page:{$page}",
+            $cacheKey,
             [600, 1200],
-            fn () => $this->brandsQuery($category),
+            fn () => $this->brandsQuery($category, $search),
         );
+
+        if ($search === '') {
+            Cache::put(
+                $this->versionedCacheKey(CacheGroupEnum::BRANDS, "home:list:{$categoryKey}:page:{$page}"),
+                $brands,
+                now()->addSeconds(1200),
+            );
+        }
+
+        return $brands;
     }
 
-    private function brandsQuery(?PPOBCategory $category)
+    private function brandsQuery(?PPOBCategory $category, string $search = '')
     {
+        $searchTerm = trim($search);
+
         return PPOBBrand::query()
             ->with('category', 'media')
             ->when($category, fn ($query) => $query->where('p_p_o_b_category_id', $category->id))
+            ->when($searchTerm !== '', fn ($query) => $query->where('name', 'like', "%{$searchTerm}%"))
             ->where('status', true)
+            ->orderByRaw('CASE WHEN featured = 1 THEN 0 ELSE 1 END')
+            ->orderBy('featured', 'desc')
             ->orderBy('order')
-            ->simplePaginate(12)
+            ->simplePaginate(24)
             ->through(function ($brand) {
                 $brand->image = $brand->getFirstMediaUrl('image');
                 $brand->makeHidden('media');

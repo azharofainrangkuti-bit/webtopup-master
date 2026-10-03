@@ -6,12 +6,15 @@ use App\Enums\PaymentStatusEnum;
 use App\Mail\PaymentFailed;
 use App\Mail\PaymentSuccess;
 use App\Models\Order\Order;
+use App\Services\VipaymentService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Triyatna\Digiflazz\Digiflazz;
 
 class ValidatePaymentAction
 {
+    public function __construct(public readonly VipaymentService $vipaymentService) {}
+
     /**
      * Handle the action.
      */
@@ -46,6 +49,17 @@ class ValidatePaymentAction
                 //     customerNo: $customer,
                 //     refId: $order->reference,
                 // );
+            } elseif ($order->product->provider === 'vipayment') {
+                $transaction = $this->vipaymentService->createTransaction(
+                    productCode: $order->product->sku,
+                    destination: $accountId,
+                    serverId: $serverId !== '' ? $serverId : null,
+                    endpoint: $order->product->vipayment_endpoint ?? 'api/game-feature',
+                );
+
+                if ($transaction['transaction_id']) {
+                    $payment->update(['transaction_id' => $transaction['transaction_id']]);
+                }
             }
 
             // Send success notification

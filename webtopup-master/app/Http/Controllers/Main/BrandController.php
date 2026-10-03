@@ -6,6 +6,7 @@ use App\Enums\CacheGroupEnum;
 use App\Http\Controllers\Controller;
 use App\Models\PPOB\PPOBBrand;
 use App\Models\Web\Faq;
+use App\Services\SakurupiahService;
 use App\Traits\WithVersionedCache;
 use Inertia\Response;
 
@@ -39,9 +40,16 @@ class BrandController extends Controller
         $settingTitle = getSetting('title');
         $settingFavicon = getSetting('favicon') ?: '/favicon.svg';
 
+        $sakurupiahMethods = app(SakurupiahService::class)->paymentMethods();
+
+        $activePrices = $brand->products->where('status', true)->pluck('sell_price');
+        $brandUrl = route('product.show', $brand->slug);
+        $brandImage = $brand->image ?: (config('app.url').$settingFavicon);
+
         return inertia()->render('main/BrandDetail', [
             'brand' => $brand,
             'faqs' => $faqs,
+            'payment_methods' => $sakurupiahMethods,
         ])->withViewData([
             'meta' => [
                 'title' => "{$brand->name} - Top Up Murah & Cepat | {$settingTitle}",
@@ -49,8 +57,55 @@ class BrandController extends Controller
                 'keywords' => "top up {$brand->name}, beli {$brand->name}, harga {$brand->name}, {$brand->name} murah, {$settingTitle}, topup game",
                 'author' => $settingTitle,
                 'application_name' => $settingTitle,
-                'url' => route('product.show', $brand->slug),
-                'image' => $brand->image ?: (config('app.url').$settingFavicon),
+                'url' => $brandUrl,
+                'image' => $brandImage,
+                'structured_data' => [
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'Product',
+                        'name' => $brand->name,
+                        'description' => $brand->description ?: "Top up {$brand->name} termurah dan terpercaya di {$settingTitle}.",
+                        'image' => $brandImage,
+                        'url' => $brandUrl,
+                        'brand' => [
+                            '@type' => 'Brand',
+                            'name' => $brand->name,
+                        ],
+                        'offers' => [
+                            '@type' => 'AggregateOffer',
+                            'priceCurrency' => 'IDR',
+                            'lowPrice' => (float) ($activePrices->min() ?? 0),
+                            'highPrice' => (float) ($activePrices->max() ?? 0),
+                            'offerCount' => $activePrices->count(),
+                            'availability' => 'https://schema.org/InStock',
+                            'url' => $brandUrl,
+                        ],
+                    ],
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'BreadcrumbList',
+                        'itemListElement' => [
+                            [
+                                '@type' => 'ListItem',
+                                'position' => 1,
+                                'name' => 'Home',
+                                'item' => route('home'),
+                            ],
+                            [
+                                '@type' => 'ListItem',
+                                'position' => 2,
+                                'name' => $brand->category?->name ?? 'Produk',
+                                'item' => route('home', ['category' => $brand->category?->slug]),
+                            ],
+                            [
+                                '@type' => 'ListItem',
+                                'position' => 3,
+                                'name' => $brand->name,
+                                'item' => $brandUrl,
+                            ],
+                        ],
+                    ],
+                ],
             ],
         ]);
     }

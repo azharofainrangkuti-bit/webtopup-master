@@ -197,6 +197,7 @@ watch(selectedBrand, () => {
                             <SelectItem value="digiflazz">
                                 Digiflazz
                             </SelectItem>
+                            <SelectItem value="vipayment">ViPayment</SelectItem>
                             <SelectItem value="gift"> Gift </SelectItem>
                             <SelectItem value="manual_topup">
                                 Manual Topup

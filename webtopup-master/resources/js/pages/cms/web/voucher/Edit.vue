@@ -102,7 +102,7 @@ const type = ref<string>(props.voucher.type);
                     <input type="hidden" name="type" :value="type" />
                     <Select
                         :default-value="voucher.type"
-                        @update:model-value="(val) => (type = val)"
+                        @update:model-value="(val) => (type = String(val ?? ''))"
                     >
                         <SelectTrigger id="type" class="w-full">
                             <SelectValue placeholder="Select a type" />

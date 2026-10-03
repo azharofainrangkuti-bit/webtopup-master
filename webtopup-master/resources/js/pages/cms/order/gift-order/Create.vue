@@ -68,7 +68,13 @@ const labelServer = computed(
     () => selectedProduct.value?.brand?.settings?.label_server || 'Server',
 );
 const serverOptions = computed(
-    () => selectedProduct.value?.brand?.settings?.servers || [],
+    () =>
+        (selectedProduct.value?.brand?.settings?.servers || []).map(
+            (server) =>
+                typeof server === 'string'
+                    ? { id: server, name: server }
+                    : server,
+        ),
 );
 
 const submit = (close: () => void) => {

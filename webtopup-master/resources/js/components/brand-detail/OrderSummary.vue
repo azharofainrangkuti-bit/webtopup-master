@@ -5,10 +5,14 @@ import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/utils';
 import { PPOBProductDataItem } from '@/types/cms/ppob';
 import axios from 'axios';
-import { BadgeCheck, Loader2, TicketPercent } from 'lucide-vue-next';
+import {
+    BadgeCheck,
+    Loader2,
+    ShieldCheck,
+    TicketPercent,
+} from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import ContactCS from './ContactCS.vue';
-import ReviewRating from './ReviewRating.vue';
 
 interface ManualBank {
     id?: string;
@@ -120,14 +124,30 @@ watch(
 </script>
 
 <template>
-    <div class="sticky top-4">
-        <ReviewRating :rating="4.99" :totalReviews="10521" />
+    <div class="sticky top-24">
+        <div class="rounded-2xl border border-[#0877e8]/15 bg-gradient-to-br from-[#061b36] via-[#0b3b72] to-[#0877e8] p-5 text-white shadow-lg shadow-[#0877e8]/20">
+            <div class="flex items-start gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-[#7ed7ff]">
+                    <ShieldCheck class="h-5 w-5" />
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7ed7ff]">Checkout terlindungi</p>
+                    <h3 class="mt-1 text-base font-bold">Detail pesanan selalu transparan</h3>
+                    <p class="mt-1 text-xs leading-5 text-white/75">Harga, biaya pembayaran, dan status transaksi akan tampil jelas sebelum pesanan diproses.</p>
+                </div>
+            </div>
+            <div class="mt-4 grid grid-cols-3 gap-2 border-t border-white/15 pt-3 text-center text-[10px] font-semibold text-white/80">
+                <span>Harga jelas</span>
+                <span>Bayar aman</span>
+                <span>Status terlacak</span>
+            </div>
+        </div>
 
         <ContactCS />
 
         <!-- Voucher Section -->
         <div
-            class="mt-5 rounded-lg border border-border/50 bg-card p-6 shadow-sm"
+            class="mt-5 rounded-2xl border border-[#0877e8]/10 bg-white p-5 shadow-md sm:p-6"
         >
             <h3 class="mb-4 text-lg font-bold text-foreground">Kode Voucher</h3>
 
@@ -165,18 +185,30 @@ watch(
             <p v-if="voucherError" class="mt-2 text-xs text-red-500">
                 {{ voucherError }}
             </p>
-            <p v-if="appliedVoucherCode" class="mt-2 text-xs text-green-500">
-                Voucher berhasil digunakan! Hemat
-                {{ formatCurrency(discountAmount) }}
+            <p v-if="appliedVoucherCode" class="mt-2 text-xs font-medium text-emerald-600">
+                Voucher aktif: hemat {{ formatCurrency(discountAmount) }}
             </p>
         </div>
 
         <div
-            class="mt-5 rounded-lg border border-border/50 bg-card p-6 shadow-sm"
+            class="mt-5 rounded-2xl border border-[#0877e8]/10 bg-white p-5 shadow-md sm:p-6"
         >
-            <h3 class="mb-4 text-lg font-bold text-foreground">
-                Ringkasan Pesanan
-            </h3>
+            <div class="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-sm">
+                <div class="flex items-start gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                        <ShieldCheck class="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-foreground">
+                            Transaksi lebih tenang
+                        </h3>
+                        <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                            Detail pesanan, metode pembayaran, dan status transaksi
+                            ditampilkan dengan jelas sebelum kamu membayar.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
             <div class="space-y-3 text-sm">
                 <div class="flex justify-between">
@@ -240,9 +272,9 @@ watch(
                     </span>
                 </div>
 
-                <div class="border-t border-border/30 pt-3">
-                    <div class="flex justify-between text-base font-bold">
-                        <span class="text-foreground">Total:</span>
+                <div class="mt-4 rounded-2xl border border-primary/10 bg-primary/5 p-3">
+                    <div class="flex items-center justify-between text-base font-bold">
+                        <span class="text-foreground">Total bayar</span>
                         <span class="text-primary">
                             {{ formatCurrency(totalAmount) }}
                         </span>
@@ -251,7 +283,7 @@ watch(
             </div>
 
             <Button
-                class="mt-6 w-full"
+                class="mt-6 w-full rounded-xl bg-gradient-to-r from-[#0877e8] to-[#0757b7] py-3.5 text-white shadow-lg shadow-[#0877e8]/25 hover:opacity-95"
                 @click="emit('checkout')"
                 :disabled="isLoading"
             >

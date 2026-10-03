@@ -16,9 +16,16 @@ class CheckGameAccountController extends Controller
         $result = $action->handle($request->validated());
 
         if (! $result['status']) {
-            return $this->responseWithError('Game ID invalid', 422);
+            return $this->responseWithError(
+                $result['message'] ?? 'Game ID tidak dapat diverifikasi oleh provider',
+                422,
+            );
         }
 
-        return $this->responseWithSuccess($result['data']);
+        return $this->responseWithSuccess([
+            ...($result['data'] ?? []),
+            'verification_pending' => $result['verification_pending'] ?? false,
+            'message' => $result['message'] ?? null,
+        ], $result['message'] ?? 'Game ID berhasil diverifikasi');
     }
 }

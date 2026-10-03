@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-import { createInertiaApp, usePage } from '@inertiajs/vue3';
+import { createInertiaApp, router, usePage } from '@inertiajs/vue3';
 import { putConfig, renderApp } from '@inertiaui/modal-vue';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import dayjs from 'dayjs';
@@ -9,10 +9,17 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp } from 'vue';
 import { initializeTheme } from './composables/useAppearance';
+import { revealDirective } from './directives/reveal';
 
 dayjs.locale('id');
 
 const app = usePage();
+
+router.on('navigate', () => {
+    if (typeof window.fbq === 'function') {
+        window.fbq('track', 'PageView');
+    }
+});
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${app.props.name}` : app.props.name),
@@ -25,6 +32,7 @@ createInertiaApp({
         createApp({ render: renderApp(App, props) })
             .use(plugin)
             .use(VueQueryPlugin)
+            .directive('reveal', revealDirective)
             .mount(el);
     },
     progress: {

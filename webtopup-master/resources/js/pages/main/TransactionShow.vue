@@ -1,22 +1,32 @@
 <script setup lang="ts">
+import FloatingCsWidget from '@/components/FloatingCsWidget.vue';
 import MainFooter from '@/components/MainFooter.vue';
 import MainHeader from '@/components/MainHeader.vue';
 import DeliveryProgressCard from '@/components/transaction/DeliveryProgressCard.vue';
 import OrderDetails from '@/components/transaction/OrderDetails.vue';
 import PaymentInstructions from '@/components/transaction/PaymentInstructions.vue';
 import { OrderDataItem } from '@/types/cms/main';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     order: OrderDataItem;
     mlAccountNickname?: string;
 }>();
+
+const page = usePage();
+
+const csWhatsappUrl = computed(() => {
+    const rawPhone = String(page.props.setting?.phone ?? '').replace(/\D/g, '');
+    const phone = rawPhone.startsWith('0') ? `62${rawPhone.slice(1)}` : rawPhone;
+    return phone ? `https://wa.me/${phone}?text=Halo%20CS,%20saya%20butuh%20bantuan%20mengenai%20pesanan%20ID%20${props.order.reference}` : '#';
+});
 </script>
 
 <template>
     <Head :title="'Detail Transaksi ' + order.reference" />
 
-    <div class="flex min-h-screen flex-col bg-background">
+    <div class="public-shell flex min-h-screen flex-col bg-background">
         <!-- Header -->
         <MainHeader :show-back-button="true" />
 
@@ -70,22 +80,31 @@ defineProps<{
 
                 <!-- Help Section -->
                 <div
-                    class="mt-6 rounded-lg border border-border/50 bg-card p-4"
+                    class="mt-6 rounded-2xl border border-border/60 bg-card p-5 shadow-sm"
                 >
-                    <p class="text-sm text-muted-foreground">
-                        💬 Butuh bantuan? Hubungi CS kami di
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <p class="text-base font-bold text-foreground">
+                                Butuh Bantuan Mengenai Pesanan Ini?
+                            </p>
+                            <p class="text-sm text-muted-foreground">
+                                Tim Customer Service kami siap membantu memverifikasi atau menjawab pertanyaan Anda 24/7.
+                            </p>
+                        </div>
                         <a
-                            href="https://wa.me/6281234567890"
+                            :href="csWhatsappUrl"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="font-medium text-primary hover:underline"
+                            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-500"
                         >
-                            WhatsApp
+                            <span>Chat CS WhatsApp</span>
                         </a>
-                    </p>
+                    </div>
                 </div>
             </div>
         </main>
+
+        <FloatingCsWidget />
 
         <!-- Footer -->
         <MainFooter />

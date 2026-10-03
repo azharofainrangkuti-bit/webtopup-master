@@ -41,7 +41,7 @@ WORKDIR /var/www/html
 
 # ─── PHP dependencies ─────────────────────────────────────────────────────────
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
 
 # ─── Node dependencies ────────────────────────────────────────────────────────
 COPY package.json package-lock.json ./
@@ -51,7 +51,8 @@ RUN npm ci
 COPY . .
 
 # ─── Build assets (wayfinder needs PHP, Vite needs Node) ─────────────────────
-RUN cp .env.example .env \
+RUN composer dump-autoload --optimize \
+    && cp .env.example .env \
     && php artisan key:generate \
     && php artisan wayfinder:generate --no-interaction \
     && npm run build \

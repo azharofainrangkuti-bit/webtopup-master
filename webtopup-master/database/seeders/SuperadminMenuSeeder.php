@@ -127,6 +127,14 @@ class SuperadminMenuSeeder extends Seeder
             'active_pattern' => '/cms/ppob/import-digiflazz',
             'status' => 1,
         ]);
+        $ppob->subMenu()->create([
+            'role_id' => $this->role->id,
+            'name' => 'Import ViPayment',
+            'url' => '/cms/ppob/import-vipayment',
+            'order' => 5,
+            'active_pattern' => '/cms/ppob/import-vipayment',
+            'status' => 1,
+        ]);
     }
 
     public function webMenu()

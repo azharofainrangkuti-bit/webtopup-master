@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { getBrandVisual } from '@/lib/brandVisual';
 import { PPOBBrandDataItem } from '@/types/cms/ppob';
+import { Clock3, MessageCircle, ShieldCheck } from 'lucide-vue-next';
+import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     brand: PPOBBrandDataItem;
 }>();
+
+const visual = computed(() => getBrandVisual(props.brand.name));
 </script>
 
 <template>
     <div
-        class="relative h-64 overflow-hidden bg-gradient-to-r from-primary/20 to-primary/5"
+        class="relative min-h-72 overflow-hidden bg-[#061b36] sm:min-h-80"
     >
         <img
             v-if="brand.banner"
@@ -18,17 +23,17 @@ defineProps<{
             loading="eager"
             fetchpriority="high"
         />
-        <div
-            class="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"
-        ></div>
+        <div class="absolute inset-0 bg-[linear-gradient(100deg,rgba(3,18,40,.96)_0%,rgba(3,18,40,.72)_42%,rgba(3,18,40,.14)_100%)]"></div>
+        <div class="absolute -right-20 -top-24 h-72 w-72 rounded-full border-[28px] border-[#ff7058]/20"></div>
+        <div class="absolute right-16 bottom-8 h-24 w-24 rounded-full bg-[#0877e8]/30 blur-2xl"></div>
 
         <!-- Brand Info Overlay -->
-        <div class="absolute right-0 bottom-0 left-0 p-6">
+        <div class="absolute right-0 bottom-0 left-0 p-5 sm:p-8">
             <div class="mx-auto max-w-5xl">
-                <div class="flex items-end gap-4">
+                <div class="flex items-end gap-4 sm:gap-5">
                     <!-- Brand Logo -->
                     <div
-                        class="h-20 w-20 overflow-hidden rounded-lg border-4 border-background bg-card shadow-lg"
+                        class="h-16 w-16 overflow-hidden rounded-2xl border-4 border-white/90 bg-white shadow-2xl shadow-black/30 sm:h-24 sm:w-24"
                     >
                         <img
                             v-if="brand.image"
@@ -37,62 +42,38 @@ defineProps<{
                             class="h-full w-full object-cover"
                             loading="eager"
                         />
+                        <div
+                            v-else
+                            class="flex h-full w-full items-center justify-center bg-gradient-to-br text-foreground/70"
+                            :class="visual.gradient"
+                        >
+                            <component :is="visual.icon" class="h-9 w-9 opacity-70" />
+                        </div>
                     </div>
 
                     <!-- Brand Name & Features -->
                     <div class="flex-1">
-                        <h1 class="mb-2 text-2xl font-bold text-foreground">
+                        <p class="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#7ed7ff]">Top up resmi & aman</p>
+                        <h1 class="mb-3 text-2xl font-black text-white drop-shadow-sm md:text-4xl">
                             {{ brand.name }}
                         </h1>
                         <div class="flex flex-wrap gap-2">
                             <div
-                                class="flex items-center gap-1 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground"
+                                class="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-3 w-3"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
+                                <Clock3 class="h-3 w-3" />
                                 Proses Cepat
                             </div>
                             <div
-                                class="flex items-center gap-1 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground"
+                                class="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-3 w-3"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <path
-                                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                                    />
-                                </svg>
+                                <MessageCircle class="h-3 w-3" />
                                 Layanan Chat 24/7
                             </div>
                             <div
-                                class="flex items-center gap-1 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground"
+                                class="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-3 w-3"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <path
-                                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                                    />
-                                </svg>
+                                <ShieldCheck class="h-3 w-3" />
                                 Pembayaran Aman
                             </div>
                         </div>

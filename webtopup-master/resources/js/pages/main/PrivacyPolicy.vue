@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { privacyPolicy } from '@/actions/App/Http/Controllers/Main/ContentController';
+import FloatingCsWidget from '@/components/FloatingCsWidget.vue';
 import MainFooter from '@/components/MainFooter.vue';
 import MainHeader from '@/components/MainHeader.vue';
 import { Head, usePage } from '@inertiajs/vue3';
@@ -25,7 +26,7 @@ const appUrl = page.props.app_url;
         </component>
     </Head>
 
-    <div class="min-h-screen bg-background">
+    <div class="public-shell min-h-screen bg-background">
         <!-- Header -->
         <MainHeader :show-search="false" />
 
@@ -42,6 +43,8 @@ const appUrl = page.props.app_url;
                 />
             </div>
         </main>
+
+        <FloatingCsWidget />
 
         <!-- Footer -->
         <MainFooter />

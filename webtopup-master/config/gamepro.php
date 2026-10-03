@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'api_url' => env('APIAGAME_API_URL', 'https://v1.apigames.id'),
-    'merchant_id' => env('APIAGAME_MERCHANT_ID', null),
-    'secret_key' => env('APIAGAME_SECRET_KEY', null),
+    'api_url' => env('VIPAYMENT_BASE_URL', 'https://vip-reseller.co.id'),
+    'merchant_id' => env('VIPAYMENT_API_ID', null),
+    'secret_key' => env('VIPAYMENT_API_KEY', null),
 ];
